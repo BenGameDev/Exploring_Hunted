@@ -26,7 +26,6 @@ public class PlayerController : MonoBehaviour
     public Animator animator;
 
     public Vector3 velocity;
-    public Vector3 lastRotation;
     public bool isGrounded;
     private void Awake()
     {
@@ -59,7 +58,8 @@ public class PlayerController : MonoBehaviour
             animator.SetBool("Walking", false);
         }
 
-        if (Input.GetKey(KeyCode.LeftShift))
+        Vector3 move = transform.right * x + transform.forward * z;
+        if (Input.GetKey(KeyCode.LeftShift) && move != Vector3.zero)
         {
             speed = 12f;
             run = true;
@@ -73,7 +73,6 @@ public class PlayerController : MonoBehaviour
             run = false;
         }
 
-        Vector3 move = transform.right * x + transform.forward * z;
         if (move != Vector3.zero)
         {
             character.transform.rotation = Quaternion.Slerp(character.transform.rotation, Quaternion.LookRotation(move), 0.15F);
