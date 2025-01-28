@@ -2,16 +2,19 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEditor.Animations;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class PlayerController : MonoBehaviour
 {
 
     public CharacterController controller;
-
+    public GameObject character;
     public float speed = 12f;
     public float dashSpeed = 20f;
     public float gravity = -9.81f;
     public float jumpHeight = 3f;
+
+    public bool run;
 
     public Vector3 fowardDirection;
 
@@ -23,9 +26,8 @@ public class PlayerController : MonoBehaviour
     public Animator animator;
 
     public Vector3 velocity;
+    public Vector3 lastRotation;
     public bool isGrounded;
-    public bool usedDash;
-    public bool dashCruveDone;
     private void Awake()
     {
         /*
@@ -42,29 +44,45 @@ public class PlayerController : MonoBehaviour
     {
         Walk();
         Jump();
-        Dash();      
     }
 
     void Walk()
-    { 
+    {
         float x = Input.GetAxis("Horizontal");
         float z = Input.GetAxis("Vertical");
-        if(x > 0 || z > 0 || x < 0 || z < 0)
+        if ((x > 0 && run == false) || (z > 0 && run == false) || (x < 0 && run == false) || (z < 0 && run == false))
         {
             animator.SetBool("Walking", true);
         }
-        else if(x == 0 && z == 0)
+        else if (x == 0 && z == 0)
         {
             animator.SetBool("Walking", false);
         }
 
-        Vector3 move = transform.right * x + transform.forward * z;
+        if (Input.GetKey(KeyCode.LeftShift))
+        {
+            speed = 12f;
+            run = true;
+            animator.SetBool("Running", true);
+            animator.SetBool("Walking", false);
+        }
+        else if (Input.GetKeyUp(KeyCode.LeftShift))
+        {
+            animator.SetBool("Running", false);
+            speed = 5f;
+            run = false;
+        }
 
+        Vector3 move = transform.right * x + transform.forward * z;
+        if (move != Vector3.zero)
+        {
+            character.transform.rotation = Quaternion.Slerp(character.transform.rotation, Quaternion.LookRotation(move), 0.15F);
+        }
         controller.Move(move * speed * Time.deltaTime);
 
         controller.Move(velocity * Time.deltaTime);
     }
-    
+
     void Jump()
     {
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
@@ -75,9 +93,9 @@ public class PlayerController : MonoBehaviour
             speed = 4f;
         }
 
-        if (isGrounded && velocity.y < 0)
+        if (isGrounded && velocity.y < 0 && run == false)
         {
-            speed = 10f;
+            speed = 5f;
             velocity.y = -2f;
         }
 
@@ -87,42 +105,7 @@ public class PlayerController : MonoBehaviour
             velocity.y = Mathf.Sqrt(jumpHeight * -2 * gravity);
         }
 
-        
+
         velocity.y += gravity * (Time.deltaTime * 1.5f);
     }
-
-    void Dash()
-    {
-        if (Input.GetKeyDown(KeyCode.LeftShift) && usedDash == false)
-        {
-            fowardDirection = transform.forward;
-            usedDash = true;
-            if (usedDash == true)
-            {
-                velocity = fowardDirection * dashSpeed;
-                StartCoroutine(DashTime());
-            }
-        }
-    }
-
-    IEnumerator DashTime()
-    {
-        yield return new WaitForSeconds(0.1f);
-        velocity = fowardDirection * (dashSpeed / 2);
-        yield return new WaitForSeconds(0.15f);
-        usedDash = false;
-        velocity.x = 0;
-        velocity.z = 0;
-    }
-
-    private void OnControllerColliderHit(ControllerColliderHit hit)
-    {
-        if (usedDash == false)
-        {
-            velocity.x = 0f;
-            velocity.z = 0f;
-        }
-    }
-
-
 }
